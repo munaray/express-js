@@ -8,6 +8,7 @@ import {
 import { postSchemaValidators } from "../utils/schemaValidators.js";
 import { mockData } from "../db/data.js";
 import { resolveIndexByUserId } from "../utils/middleware.js";
+import { User } from "../db/schemas/user.js";
 
 const router = Router();
 
@@ -51,15 +52,21 @@ router.get("/users/:id", resolveIndexByUserId, (request, response) => {
 router.post(
 	"/users",
 	checkSchema(postSchemaValidators),
-	(request, response) => {
+	async (request, response) => {
 		const result = validationResult(request);
 		if (!result.isEmpty())
 			response.status(400).send({ error: result.array() });
 
 		const data = matchedData(request);
-		const newUser = { id: mockData[mockData.length - 1].id + 1, ...data };
-		mockData.push(newUser);
-		return response.status(201).send(newUser);
+		const newUser = new User(data);
+		try {
+			const saveUser = await newUser.save();
+			return response.status(201).send(saveUser);
+		} catch (err) {
+			return response.status(401).send({
+				msg: `User with username ${newUser.username} already exist`,
+			});
+		}
 	}
 );
 

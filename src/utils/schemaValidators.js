@@ -31,7 +31,13 @@ export const postSchemaValidators = {
 			errorMessage: "Password must be string",
 		},
 	},
-	name: {
+
+	firstName: {
+		notEmpty: {
+			errorMessage: "You need to input your name",
+		},
+	},
+	lastName: {
 		notEmpty: {
 			errorMessage: "You need to input your name",
 		},

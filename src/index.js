@@ -1,10 +1,17 @@
 import express from "express";
 import cookieParser from "cookie-parser";
 import session from "express-session";
+import passport from "passport";
+import "./strategies/local-strategy.js";
+import mongoose from "mongoose";
 import routes from "./routes/index.js";
-import { mockData } from "./db/data.js";
 
 const app = express();
+
+mongoose
+	.connect("mongodb://localhost/express-db")
+	.then(() => console.log("Connected to Database"))
+	.catch((err) => console.log(`Error: ${err}`));
 
 app.use(express.json());
 app.use(cookieParser("helloworld"));
@@ -18,6 +25,9 @@ app.use(
 		},
 	})
 );
+app.use(passport.initialize());
+app.use(passport.session());
+
 app.use("/api", routes);
 
 app.get("/", (request, response) => {
@@ -28,46 +38,6 @@ app.get("/", (request, response) => {
 	response.send({ msg: "Hello world" });
 });
 
-app.post("/api/auth", (request, response) => {
-	const {
-		body: { username, password },
-	} = request;
-
-	const findUser = mockData.find((user) => user.username === username);
-	if (!findUser || findUser.password !== password)
-		response.status(401).send({ msg: "BAD CREDENTIAL" });
-
-	request.session.user = findUser;
-	return response.status(200).send(findUser);
-});
-
-app.get("/api/auth/status", (request, response) => {
-	request.sessionStore.get(request.sessionID, (err, session) => {
-		console.log(session);
-	});
-	return request.session.user
-		? response.status(200).send(request.session.user)
-		: response.status(401).send({ msg: "Not Authenticated" });
-});
-
-app.post("/api/cart", (request, response) => {
-	if (!request.session.user) response.sendStatus(401);
-
-	const { body: item } = request;
-	const { cart } = request.session;
-	if (cart) {
-		cart.push(item);
-	} else {
-		request.session.cart = [item];
-	}
-	return response.status(201).send(item);
-});
-
-app.get("/api/cart", (request, response) => {
-	if (!request.session.user) response.sendStatus(401);
-
-	return response.send(request.session.cart ?? []);
-});
 
 const PORT = process.env.PORT || 3001;
 
